@@ -22,11 +22,11 @@ jobs:
 
       - name: Install Linting Tools
         run: |
-          pip install yamllint
+          pip install --upgrade yamllint
 
       - name: Validate YAML files (yamllint)
         run: |
-          yamllint -c .yamllint.yml .
+          python -m yamllint -c .yamllint.yml .
 
       - name: Validate JSON Dashboards
         run: |
@@ -52,23 +52,26 @@ jobs:
       - name: Validate Prometheus Scrape Config & Rules (promtool)
         run: |
           docker run --rm \
+            --entrypoint /bin/promtool \
             -v ${{ github.workspace }}/prometheus:/etc/prometheus \
             prom/prometheus:v2.54.1 \
-            promtool check config /etc/prometheus/prometheus.yml
+            check config /etc/prometheus/prometheus.yml
 
       - name: Validate Prometheus Alert Rules (promtool)
         run: |
           docker run --rm \
+            --entrypoint /bin/promtool \
             -v ${{ github.workspace }}/prometheus:/etc/prometheus \
             prom/prometheus:v2.54.1 \
-            promtool check rules /etc/prometheus/alert.rules.yml
+            check rules /etc/prometheus/alert.rules.yml
 
       - name: Validate Alertmanager Config (amtool)
         run: |
           docker run --rm \
+            --entrypoint /bin/amtool \
             -v ${{ github.workspace }}/alertmanager:/etc/alertmanager \
             prom/alertmanager:v0.27.0 \
-            amtool check-config /etc/alertmanager/alertmanager.yml
+            check-config /etc/alertmanager/alertmanager.yml
 
       - name: Syntax Check App & Loadgen Scripts
         run: |
