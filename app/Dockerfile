@@ -14,7 +14,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app.py .
 
-RUN chown -R appuser:appgroup /app
+RUN mkdir -p /var/log/app && chown -R appuser:appgroup /app /var/log/app
 USER appuser
 
 EXPOSE 8000
