@@ -1,0 +1,64 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+    batchwait: 1s
+    batchsize: 1048576
+
+scrape_configs:
+  # 1. Scrape structured JSON logs from the shared application volume
+  - job_name: sample-app-file
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: sample-app
+          service: sample-api
+          env: local
+          __path__: /var/log/app/*.log
+    pipeline_stages:
+      - json:
+          expressions:
+            timestamp: asctime
+            level: levelname
+            msg: message
+            endpoint: endpoint
+            status_code: status_code
+            duration: duration_seconds
+      - labels:
+          level:
+          endpoint:
+          status_code:
+
+  # 2. Scrape Docker daemon container stdout logs (when mounted)
+  - job_name: docker-containers
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: docker
+          __path__: /var/lib/docker/containers/*/*-json.log
+    pipeline_stages:
+      - json:
+          expressions:
+            output: log
+            stream: stream
+            attrs: attrs
+            tag: tag
+            time: time
+      - regex:
+          expression: "^(?P<time>\\S+) (?P<stream>stdout|stderr) (?P<flags>\\S+) (?P<content>.*)$"
+      - json:
+          expressions:
+            service: service
+            status_code: status_code
+            endpoint: endpoint
+          source: output
+      - labels:
+          stream:
+          service:

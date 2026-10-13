@@ -1,0 +1,29 @@
+groups:
+  - name: sample_app_alerts
+    rules:
+      - alert: TargetDown
+        expr: up{job="sample-app"} == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Target {{ $labels.instance }} is down"
+          description: "Service {{ $labels.job }} (instance {{ $labels.instance }}) has been unreachable for more than 30 seconds."
+
+      - alert: HighErrorRate
+        expr: (sum(rate(http_requests_total{job="sample-app", status=~"5.."}[1m])) / sum(rate(http_requests_total{job="sample-app"}[1m]))) * 100 > 10
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "High HTTP 5xx error rate on {{ $labels.job }}"
+          description: "HTTP 5xx error rate is currently {{ $value | printf \"%.2f\" }}% (threshold: >10%) over the past 1 minute."
+
+      - alert: HighP95Latency
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job="sample-app"}[1m])) by (le)) > 0.5
+        for: 30s
+        labels:
+          severity: warning
+        annotations:
+          summary: "High P95 response latency on {{ $labels.job }}"
+          description: "P95 response latency is {{ $value | printf \"%.2f\" }}s (threshold: >0.5s) over the past 1 minute."
